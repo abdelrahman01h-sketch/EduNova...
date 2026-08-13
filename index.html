@@ -294,6 +294,17 @@ button.primary:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 .copy-btn:hover{ transform:translateY(-2px); background:rgba(255,255,255,0.2); }
 .copy-btn:active{ transform:scale(0.95); }
 
+.danger-btn{
+  background:linear-gradient(135deg, var(--danger), #b91c1c);
+  border:1px solid rgba(255,255,255,0.35);
+  padding:12px 22px; border-radius:16px;
+  color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;
+  box-shadow:0 10px 26px rgba(248,113,113,0.32);
+  transition:.2s ease;
+}
+.danger-btn:hover{ transform:translateY(-3px); }
+.danger-btn:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+
 /* ================= TABLE ================= */
 table{ width:100%; margin-top:6px; border-collapse:collapse; }
 th{
@@ -656,6 +667,7 @@ textarea.ans-area{ min-height:56px; }
     <div class="toolbar-row">
       <button class="primary" onclick="addStudent()">➕ إضافة طالب</button>
       <button class="primary" onclick="exportStudents()">⬇️ تصدير الطلاب والأكواد</button>
+      <button class="danger-btn" onclick="deleteAllStudents()">🗑️ حذف جميع الطلاب</button>
     </div>
 
     <table>
@@ -826,7 +838,8 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 import {
   getAuth,
@@ -1195,6 +1208,51 @@ window.deleteStudent = id => {
       hideLoader();
     }
   }, true);
+};
+
+window.deleteAllStudents = () => {
+  showModal(
+    "⚠️ هيتم حذف جميع الطلاب وأكوادهم ونتائجهم نهائيًا من قاعدة البيانات، ومينفعش تتراجع بعد كده. متأكد؟",
+    "warn",
+    async () => {
+      try {
+        showLoader();
+
+        const studentsSnap = await getDocs(collection(db, "students"));
+
+        for (const studentDoc of studentsSnap.docs) {
+          /* ================= حذف نتائج الطالب أولًا ================= */
+          const examsSnap = await getDocs(collection(db, "students", studentDoc.id, "exams"));
+
+          let batch = writeBatch(db);
+          let opCount = 0;
+
+          for (const examDoc of examsSnap.docs) {
+            batch.delete(examDoc.ref);
+            opCount++;
+
+            if (opCount >= 450) {
+              await batch.commit();
+              batch = writeBatch(db);
+              opCount = 0;
+            }
+          }
+
+          /* ================= حذف الطالب نفسه ================= */
+          batch.delete(studentDoc.ref);
+          await batch.commit();
+        }
+
+        showModal("✅ تم حذف جميع الطلاب بنجاح", "success");
+      } catch (err) {
+        console.error(err);
+        showModal("❌ حدث خطأ أثناء حذف الطلاب", "error");
+      } finally {
+        hideLoader();
+      }
+    },
+    true
+  );
 };
 
 /* ================= COPY TO CLIPBOARD ================= */

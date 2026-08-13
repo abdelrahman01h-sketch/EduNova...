@@ -277,6 +277,23 @@ button.primary{
 button.primary:hover{ transform:translateY(-3px); }
 button.primary:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 
+.toolbar-row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.toolbar-row input{ flex:1; min-width:180px; margin-bottom:0; }
+.toolbar-row button{ white-space:nowrap; }
+
+.copy-btn{
+  background:var(--glass-strong);
+  border:1px solid var(--glass-border);
+  color:var(--text);
+  border-radius:9px;
+  padding:5px 9px;
+  cursor:pointer;
+  font-size:13px;
+  transition:.2s ease;
+}
+.copy-btn:hover{ transform:translateY(-2px); background:rgba(255,255,255,0.2); }
+.copy-btn:active{ transform:scale(0.95); }
+
 /* ================= TABLE ================= */
 table{ width:100%; margin-top:6px; border-collapse:collapse; }
 th{
@@ -635,7 +652,11 @@ textarea.ans-area{ min-height:56px; }
 
   <div class="card">
     <input id="studentName" placeholder="اسم الطالب">
-    <button class="primary" onclick="addStudent()">إضافة طالب</button>
+
+    <div class="toolbar-row">
+      <button class="primary" onclick="addStudent()">➕ إضافة طالب</button>
+      <button class="primary" onclick="exportStudents()">⬇️ تصدير الطلاب والأكواد</button>
+    </div>
 
     <table>
       <thead>
@@ -663,8 +684,11 @@ textarea.ans-area{ min-height:56px; }
   <h2>النتائج</h2>
 
   <div class="card">
-    <input id="searchResult" placeholder="بحث باسم الطالب أو الامتحان">
-    
+    <div class="toolbar-row">
+      <input id="searchResult" placeholder="بحث باسم الطالب أو الامتحان">
+      <button class="primary" onclick="exportResults()">⬇️ تصدير النتائج</button>
+    </div>
+
       <div id="resultsTable" class="results-grid"></div>
   </div>
 </div>
@@ -1072,6 +1096,8 @@ window.show = (id, btn) => {
 };
 
 /* ================= STUDENTS ================= */
+let studentsCache = [];
+
 function generateStudentCode() {
   const random = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `EN-${random}`;
@@ -1129,17 +1155,24 @@ function initStudentsListener() {
 
     const table = document.getElementById("studentsTable");
     table.innerHTML = "";
+    studentsCache = [];
 
     let i = 0;
     snap.forEach(docSnap => {
       i++;
       const d = docSnap.data();
+      studentsCache.push({ name: d.name, code: d.code });
 
       table.innerHTML += `
         <tr>
           <td>${i}</td>
           <td>${d.name}</td>
-          <td>${d.code}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+              <span>${d.code}</span>
+              <button class="copy-btn" onclick="copyCode('${d.code}', this)" title="نسخ الكود">📋</button>
+            </div>
+          </td>
           <td>
             <button onclick="deleteStudent('${docSnap.id}')"
             style="background:#ef4444;color:white;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;">
@@ -1162,6 +1195,77 @@ window.deleteStudent = id => {
       hideLoader();
     }
   }, true);
+};
+
+/* ================= COPY TO CLIPBOARD ================= */
+function copyToClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  return new Promise((resolve, reject) => {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+      document.execCommand("copy");
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      document.body.removeChild(ta);
+    }
+  });
+}
+
+window.copyCode = (code, btn) => {
+  copyToClipboard(code).then(() => {
+    if (!btn) return;
+    const original = btn.innerHTML;
+    btn.innerHTML = "✅";
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    }, 1200);
+  }).catch(() => {
+    showModal("تعذر نسخ الكود، انسخه يدويًا", "error");
+  });
+};
+
+/* ================= CSV EXPORT ================= */
+function csvEscape(value) {
+  const str = String(value ?? "");
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function downloadCSV(filename, headers, rows) {
+  const allRows = [headers, ...rows];
+  const csvContent = allRows.map(row => row.map(csvEscape).join(",")).join("\r\n");
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+window.exportStudents = () => {
+  if (!studentsCache.length) {
+    return showModal("لا يوجد طلاب لتصديرهم", "error");
+  }
+  const rows = studentsCache.map(s => [s.name, s.code]);
+  downloadCSV("students-codes.csv", ["اسم الطالب", "كود الدخول"], rows);
 };
 
 /* ================= EXAMS ================= */
@@ -1563,10 +1667,12 @@ function loadQuestions(examId) {
 
 const resultsTable = document.getElementById("resultsTable");
 const searchInput = document.getElementById("searchResult");
+let resultsCache = [];
 
 async function loadAllResults() {
 
   resultsTable.innerHTML = "";
+  resultsCache = [];
 
   const studentsSnap = await getDocs(collection(db, "students"));
 
@@ -1677,10 +1783,47 @@ onclick="deleteResult('${studentId}','${examDoc.id}')">
 
 resultsTable.appendChild(card);
 
+resultsCache.push({
+  studentName: student.name || "-",
+  studentCode: student.code || "-",
+  examName: result.examName || examDoc.id,
+  percent: percent,
+  correct: result.correct ?? 0,
+  wrong: result.wrong ?? 0,
+  blank: result.blank ?? 0,
+  date: result.date?.toDate
+    ? result.date.toDate().toLocaleDateString()
+    : (result.submitTime ? new Date(result.submitTime).toLocaleDateString() : "-")
+});
+
       
     });
   }
 }
+
+/* ================= EXPORT RESULTS ================= */
+window.exportResults = () => {
+  if (!resultsCache.length) {
+    return showModal("لا يوجد نتائج لتصديرها", "error");
+  }
+
+  const rows = resultsCache.map(r => [
+    r.studentName,
+    r.studentCode,
+    r.examName,
+    r.percent + "%",
+    r.correct,
+    r.wrong,
+    r.blank,
+    r.date
+  ]);
+
+  downloadCSV(
+    "exam-results.csv",
+    ["اسم الطالب", "كود الطالب", "الامتحان", "النسبة", "صح", "خطأ", "بدون إجابة", "التاريخ"],
+    rows
+  );
+};
 
 /* ================= SEARCH ================= */
 if (searchInput) {

@@ -375,6 +375,53 @@ tr:hover td{ background:rgba(255,255,255,0.04); }
 .modal-actions button:active{ transform:scale(0.97); }
 .modal-actions button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 
+.modal-actions .nav{
+  flex:1; padding:12px; border:1px solid var(--glass-border); border-radius:14px;
+  cursor:pointer; font-weight:700; font-size:13.5px; color:#fff;
+  background:var(--glass-strong); transition:.2s;
+}
+.modal-actions .nav:hover{ transform:translateY(-2px); }
+
+/* ================= QUESTION FORM STEPS ================= */
+.step-dots{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:18px; z-index:1; position:relative; }
+.step-dot{ width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.22); transition:.3s ease; }
+.step-dot.active{ width:24px; border-radius:6px; background:var(--gradient); }
+.step-dot.done{ background:var(--success); }
+
+.q-step{ display:none; }
+.q-step.active{ display:block; animation:fadeUp .3s ease; }
+.step-label{ font-size:12px; color:var(--text-muted); font-weight:700; margin-bottom:10px; text-align:center; z-index:1; position:relative; }
+
+textarea.qtext-area{ min-height:100px; }
+textarea.ans-area{ min-height:56px; }
+
+/* ================= IMAGE UPLOAD BOX ================= */
+.image-upload-box{
+  border:2px dashed var(--glass-border);
+  border-radius:16px;
+  padding:22px 14px;
+  text-align:center;
+  cursor:pointer;
+  transition:.2s ease;
+  background:rgba(255,255,255,0.04);
+  margin-bottom:12px;
+  overflow:hidden;
+}
+.image-upload-box:hover{ border-color:var(--a3); background:rgba(255,255,255,0.07); }
+.image-upload-box.has-image{ padding:0; border-style:solid; border-color:var(--glass-border); }
+
+.upload-placeholder{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  color:var(--text-muted); font-size:13px; font-weight:600;
+}
+.upload-placeholder .icon{ font-size:32px; }
+
+#imagePreview{
+  width:100%; max-height:220px; object-fit:cover;
+  border-radius:14px; display:block;
+}
+#imagePreview.hidden{ display:none !important; }
+
 /* ================= RESULTS CARDS ================= */
 .results-grid{
   display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
@@ -665,24 +712,57 @@ tr:hover td{ background:rgba(255,255,255,0.04); }
   <div class="modal-content">
     <h3 id="qModalTitle">إضافة سؤال</h3>
 
-    <input id="qText" placeholder="السؤال">
-    <div id="currentImageNote" class="settings-note hidden">فيه صورة محفوظة بالفعل — اختار صورة جديدة بس لو عايز تستبدلها</div>
-    <input type="file" id="qImage" accept="image/*">
-    <input id="a1" placeholder="1">
-    <input id="a2" placeholder="2">
-    <input id="a3" placeholder="3">
-    <input id="a4" placeholder="4">
+    <div class="step-dots" id="stepDots">
+      <span class="step-dot" data-step="1"></span>
+      <span class="step-dot" data-step="2"></span>
+      <span class="step-dot" data-step="3"></span>
+    </div>
 
-    <select id="correct">
-      <option value="0">1</option>
-      <option value="1">2</option>
-      <option value="2">3</option>
-      <option value="3">4</option>
-    </select>
-    <textarea id="analysis" placeholder="اكتب تحليل السؤال (اختياري)"></textarea>
+    <!-- STEP 1: نص السؤال + الصورة -->
+    <div class="q-step" data-step="1">
+      <div class="step-label">الخطوة 1 من 3 — نص السؤال والصورة</div>
+
+      <textarea id="qText" class="qtext-area" placeholder="اكتب نص السؤال هنا"></textarea>
+
+      <div id="currentImageNote" class="settings-note hidden">فيه صورة محفوظة بالفعل — اختار صورة جديدة بس لو عايز تستبدلها</div>
+
+      <div class="image-upload-box" id="imageUploadBox" onclick="document.getElementById('qImage').click()">
+        <div class="upload-placeholder" id="uploadPlaceholder">
+          <span class="icon">🖼️</span>
+          <span>اضغط لإضافة صورة السؤال (اختياري)</span>
+        </div>
+        <img id="imagePreview" class="hidden">
+      </div>
+      <input type="file" id="qImage" accept="image/*" class="hidden" onchange="onQImageChange(event)">
+    </div>
+
+    <!-- STEP 2: الإجابات -->
+    <div class="q-step" data-step="2">
+      <div class="step-label">الخطوة 2 من 3 — الإجابات</div>
+
+      <textarea id="a1" class="ans-area" placeholder="الإجابة 1"></textarea>
+      <textarea id="a2" class="ans-area" placeholder="الإجابة 2"></textarea>
+      <textarea id="a3" class="ans-area" placeholder="الإجابة 3"></textarea>
+      <textarea id="a4" class="ans-area" placeholder="الإجابة 4"></textarea>
+    </div>
+
+    <!-- STEP 3: الإجابة الصحيحة + التحليل -->
+    <div class="q-step" data-step="3">
+      <div class="step-label">الخطوة 3 من 3 — الإجابة الصحيحة والتحليل</div>
+
+      <select id="correct">
+        <option value="0">1</option>
+        <option value="1">2</option>
+        <option value="2">3</option>
+        <option value="3">4</option>
+      </select>
+      <textarea id="analysis" placeholder="اكتب تحليل السؤال (اختياري)"></textarea>
+    </div>
 
     <div class="modal-actions">
-      <button class="save" onclick="saveQuestion()">حفظ</button>
+      <button class="nav hidden" id="qPrevBtn" onclick="qStepGo(currentQStep - 1)">◀ السابق</button>
+      <button class="save" id="qNextBtn" onclick="qStepGo(currentQStep + 1)">التالي ▶</button>
+      <button class="save hidden" id="qSaveBtn" onclick="saveQuestion()">✅ حفظ</button>
       <button class="close" onclick="closeQ()">إغلاق</button>
     </div>
   </div>
@@ -1207,6 +1287,74 @@ window.deleteExam = examId => {
 let currentExamId = null;
 let editingQuestionId = null;
 let existingQuestionImage = "";
+let currentQStep = 1;
+const totalQSteps = 3;
+
+function qStepGo(step) {
+  if (step < 1) step = 1;
+  if (step > totalQSteps) step = totalQSteps;
+
+  /* ================= تحقق بسيط قبل الانتقال للأمام ================= */
+  if (step > currentQStep) {
+    if (currentQStep === 1 && !document.getElementById("qText").value.trim()) {
+      return showModal("❌ اكتب نص السؤال الأول", "error");
+    }
+    if (currentQStep === 2) {
+      const answersFilled = ["a1", "a2", "a3", "a4"]
+        .every(id => document.getElementById(id).value.trim());
+      if (!answersFilled) {
+        return showModal("❌ أكمل كل الإجابات الأربعة", "error");
+      }
+    }
+  }
+
+  currentQStep = step;
+
+  document.querySelectorAll(".q-step").forEach(el => {
+    el.classList.toggle("active", Number(el.dataset.step) === currentQStep);
+  });
+
+  document.querySelectorAll(".step-dot").forEach(dot => {
+    const n = Number(dot.dataset.step);
+    dot.classList.toggle("active", n === currentQStep);
+    dot.classList.toggle("done", n < currentQStep);
+  });
+
+  document.getElementById("qPrevBtn").classList.toggle("hidden", currentQStep === 1);
+  document.getElementById("qNextBtn").classList.toggle("hidden", currentQStep === totalQSteps);
+  document.getElementById("qSaveBtn").classList.toggle("hidden", currentQStep !== totalQSteps);
+}
+
+function resetImageUploadBox() {
+  const preview = document.getElementById("imagePreview");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const box = document.getElementById("imageUploadBox");
+
+  preview.src = "";
+  preview.classList.add("hidden");
+  placeholder.classList.remove("hidden");
+  box.classList.remove("has-image");
+}
+
+function setImagePreview(url) {
+  const preview = document.getElementById("imagePreview");
+  const placeholder = document.getElementById("uploadPlaceholder");
+  const box = document.getElementById("imageUploadBox");
+
+  preview.src = url;
+  preview.classList.remove("hidden");
+  placeholder.classList.add("hidden");
+  box.classList.add("has-image");
+}
+
+window.onQImageChange = event => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => setImagePreview(reader.result);
+  reader.readAsDataURL(file);
+};
 
 window.openQuestionModal = examId => {
   currentExamId = examId;
@@ -1223,8 +1371,10 @@ window.openQuestionModal = examId => {
   document.getElementById("correct").value = "0";
   document.getElementById("analysis").value = "";
   document.getElementById("qImage").value = "";
+  resetImageUploadBox();
 
   document.getElementById("qModal").classList.add("show");
+  qStepGo(1);
 };
 
 window.openEditQuestionModal = async (examId, questionId) => {
@@ -1251,7 +1401,14 @@ window.openEditQuestionModal = async (examId, questionId) => {
     const note = document.getElementById("currentImageNote");
     note.classList.toggle("hidden", !existingQuestionImage);
 
+    if (existingQuestionImage) {
+      setImagePreview(existingQuestionImage);
+    } else {
+      resetImageUploadBox();
+    }
+
     document.getElementById("qModal").classList.add("show");
+    qStepGo(1);
   } finally {
     hideLoader();
   }

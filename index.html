@@ -760,8 +760,8 @@ textarea.ans-area{ min-height:56px; }
     </div>
 
     <div class="modal-actions">
-      <button class="nav hidden" id="qPrevBtn" onclick="qStepGo(currentQStep - 1)">◀ السابق</button>
-      <button class="save" id="qNextBtn" onclick="qStepGo(currentQStep + 1)">التالي ▶</button>
+      <button class="nav hidden" id="qPrevBtn" onclick="qPrev()">◀ السابق</button>
+      <button class="save" id="qNextBtn" onclick="qNext()">التالي ▶</button>
       <button class="save hidden" id="qSaveBtn" onclick="saveQuestion()">✅ حفظ</button>
       <button class="close" onclick="closeQ()">إغلاق</button>
     </div>
@@ -1289,6 +1289,9 @@ let editingQuestionId = null;
 let existingQuestionImage = "";
 let currentQStep = 1;
 const totalQSteps = 3;
+
+window.qNext = () => qStepGo(currentQStep + 1);
+window.qPrev = () => qStepGo(currentQStep - 1);
 
 function qStepGo(step) {
   if (step < 1) step = 1;

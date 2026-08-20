@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>منصة الامتحانات - لوحة المدير</title>
-
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 
@@ -862,20 +862,27 @@ textarea.ans-area{ min-height:56px; }
       </div>
 
       <div id="essayFieldsWrap" class="hidden">
-        <input id="essayPoints" type="number" min="0" step="0.5" placeholder="الدرجة الكلية للسؤال" oninput="renderRubricSum()">
+        <div class="type-toggle" id="gradingMethodToggle" style="margin-bottom:14px;">
+          <label id="methodLabelAi"><input type="radio" name="gradingMethod" id="methodAi" value="ai" checked onchange="onGradingMethodChange()"> 🤖 يصححها الذكاء الاصطناعي</label>
+          <label id="methodLabelManual"><input type="radio" name="gradingMethod" id="methodManual" value="manual" onchange="onGradingMethodChange()"> ✍️ هصححها بنفسي</label>
+        </div>
 
-        <div class="settings-note" style="margin-bottom:10px;">Rubric / معايير التصحيح — مجموع درجات المعايير يجب أن يساوي الدرجة الكلية</div>
+        <input id="essayPoints" type="number" min="0" step="0.5" placeholder="🔢 الدرجة الكلية بتاعة السؤال ده" oninput="renderRubricSum()">
+
+        <div class="settings-note" style="margin-bottom:10px;" id="rubricHint">📋 حط معايير التصحيح (Rubric) — ومجموعهم لازم يساوي الدرجة الكلية بالظبط</div>
         <div id="rubricRows"></div>
-        <button type="button" class="copy-btn" style="margin-bottom:10px;" onclick="addRubricRow()">➕ إضافة معيار</button>
+        <button type="button" class="copy-btn" style="margin-bottom:10px;" onclick="addRubricRow()">➕ ضيف معيار تاني</button>
         <div id="rubricSum" class="rubric-sum"></div>
 
-        <textarea id="acceptedIdeas" placeholder="أفكار أو معلومات مقبولة (سطر لكل فكرة) — اختياري"></textarea>
+        <div id="aiOnlyFields">
+          <textarea id="acceptedIdeas" placeholder="💡 أفكار مقبولة تساعد الـAI (سطر لكل فكرة) — مش إجباري"></textarea>
 
-        <select id="gradingMode">
-          <option value="strict">صارم</option>
-          <option value="balanced" selected>متوازن</option>
-          <option value="lenient">متسامح</option>
-        </select>
+          <select id="gradingMode">
+            <option value="strict">😤 صارم</option>
+            <option value="balanced" selected>⚖️ متوازن</option>
+            <option value="lenient">🤗 متسامح</option>
+          </select>
+        </div>
       </div>
     </div>
 
@@ -1543,6 +1550,16 @@ function currentQType() {
   return document.getElementById("typeEssay").checked ? "essay" : "mcq";
 }
 
+window.onGradingMethodChange = () => {
+  const isManual = document.getElementById("methodManual").checked;
+  document.getElementById("aiOnlyFields").classList.toggle("hidden", isManual);
+  document.getElementById("rubricHint").innerText = isManual
+    ? "📋 حط معايير التصحيح عشان تفتكرها وانت بتصحح بنفسك بعدين"
+    : "📋 حط معايير التصحيح (Rubric) — ومجموعهم لازم يساوي الدرجة الكلية بالظبط";
+  document.getElementById("methodLabelAi").classList.toggle("active", !isManual);
+  document.getElementById("methodLabelManual").classList.toggle("active", isManual);
+};
+
 window.onQTypeChange = () => {
   const type = currentQType();
   const isEssay = type === "essay";
@@ -1560,6 +1577,7 @@ window.onQTypeChange = () => {
   if (isEssay && !document.getElementById("rubricRows").children.length) {
     addRubricRow();
   }
+  onGradingMethodChange();
   renderRubricSum();
 };
 
@@ -1695,6 +1713,7 @@ window.onQImageChange = event => {
 
 function resetQuestionTypeFields() {
   document.getElementById("typeMcq").checked = true;
+  document.getElementById("methodAi").checked = true;
   document.getElementById("essayPoints").value = "";
   document.getElementById("rubricRows").innerHTML = "";
   document.getElementById("acceptedIdeas").value = "";
@@ -1754,6 +1773,8 @@ window.openEditQuestionModal = async (examId, questionId) => {
       (q.rubric || []).forEach(c => addRubricRow(c));
       document.getElementById("acceptedIdeas").value = (q.acceptedIdeas || []).join("\n");
       document.getElementById("gradingMode").value = q.gradingMode || "balanced";
+      document.getElementById("methodManual").checked = q.gradingMethod === "manual";
+      document.getElementById("methodAi").checked = q.gradingMethod !== "manual";
     } else {
       document.getElementById("essayPoints").value = "";
       document.getElementById("acceptedIdeas").value = "";
@@ -1838,6 +1859,7 @@ window.saveQuestion = async () => {
       rubric,
       acceptedIdeas,
       gradingMode: document.getElementById("gradingMode").value || "balanced",
+      gradingMethod: document.getElementById("methodManual").checked ? "manual" : "ai",
       analysis: analysis || ""
     };
   }
@@ -1924,6 +1946,9 @@ function loadQuestions(examId) {
 
       const bodyHTML = qType === "essay" ? `
         <div class="badge-pill type-essay">✍️ مقالي — ${q.points ?? 0} درجة</div>
+        <div class="badge-pill ${q.gradingMethod === "manual" ? "type-mcq" : "type-essay"}" style="margin-right:6px;">
+          ${q.gradingMethod === "manual" ? "🖐 هتصححه بنفسك" : "🤖 الـAI هيصححه"}
+        </div>
         <div style="margin-top:10px;font-size:12.5px;color:var(--text-muted);">
           ${(q.rubric || []).map(c => `• ${c.title} (${c.points})`).join("<br>")}
         </div>
@@ -2173,6 +2198,225 @@ window.deleteResult = async (studentId, examId) => {
 
 
 
+/* ================= ESSAY REVIEW (مراجعة المقالي) ================= */
+let allEssayCards = []; // cached for client-side search/filter
+
+window.loadEssayReviews = async () => {
+  const box = document.getElementById("essayReviewBox");
+  box.innerHTML = `<div class="settings-note">⏳ لحظات وهنجيبلك كل الإجابات المقالية...</div>`;
+
+  try {
+    const snap = await getDocs(collectionGroup(db, "essayResults"));
+    allEssayCards = [];
+
+    for (const d of snap.docs) {
+      const r = d.data();
+      // path: students/{studentId}/exams/{examName}/essayResults/{questionId}
+      const parts = d.ref.path.split("/");
+      const studentId = parts[1];
+      const examName = parts[3];
+
+      let studentName = r.studentName;
+      if (!studentName) {
+        try {
+          const sSnap = await getDoc(doc(db, "students", studentId));
+          studentName = sSnap.exists() ? (sSnap.data().name || "طالب") : "طالب";
+        } catch (e) { studentName = "طالب"; }
+      }
+
+      allEssayCards.push({
+        ref: d.ref,
+        path: d.ref.path,
+        studentId, examName,
+        studentName,
+        questionId: r.questionId || parts[5],
+        questionText: r.questionText || "سؤال مقالي",
+        answer: r.studentAnswer || "",
+        aiScore: r.aiScore,
+        teacherScore: r.teacherScore,
+        finalScore: r.finalScore,
+        maxScore: r.maxScore,
+        confidence: r.confidence,
+        needsHumanReview: r.needsHumanReview,
+        gradingStatus: r.gradingStatus || "pending",
+        gradingMethod: r.gradingMethod || "ai",
+        reviewedByTeacher: r.reviewedByTeacher,
+        aiSummary: r.aiSummary || "",
+        criteria: r.criteria || [],
+        gradingError: r.gradingError || ""
+      });
+    }
+
+    renderEssayCards(allEssayCards);
+  } catch (e) {
+    console.error(e);
+    box.innerHTML = `<div class="settings-note">😵 مقدرناش نجيب الإجابات دلوقتي، جرب تاني كمان شوية</div>`;
+  }
+};
+
+function essayStatusMeta(card) {
+  if (card.gradingStatus === "failed") return { cls: "failed", text: "🔴 حصل عطل في التصحيح" };
+  if (card.gradingStatus === "pending" || card.gradingStatus === "processing") return { cls: "pending", text: "🔵 لسه بيتصحح..." };
+  if (card.reviewedByTeacher) return { cls: "high", text: "🟢 اعتمدتها انت" };
+  if (card.gradingMethod === "manual" && (card.finalScore === null || card.finalScore === undefined)) {
+    return { cls: "review", text: "🖐 محتاجة تصححها بنفسك" };
+  }
+  if (card.gradingStatus === "review_required" || card.needsHumanReview) return { cls: "review", text: "🟡 محتاجة نظرة منك" };
+  if (card.gradingStatus === "graded") return { cls: "high", text: "🟢 اتصححت تمام" };
+  return { cls: "pending", text: "🔵 في الطريق..." };
+}
+
+function renderEssayCards(cards) {
+  const box = document.getElementById("essayReviewBox");
+  if (!cards.length) {
+    box.innerHTML = `<div class="settings-note">😌 مفيش ولا إجابة مقالية دلوقتي — تمام كده!</div>`;
+    return;
+  }
+
+  box.innerHTML = cards.map((c, idx) => {
+    const meta = essayStatusMeta(c);
+    const score = c.finalScore ?? c.aiScore;
+    const scoreText = (score !== null && score !== undefined) ? `${score} / ${c.maxScore ?? "?"}` : "— لسه";
+    const canRetry = c.gradingMethod !== "manual" && (c.gradingStatus === "failed" || c.gradingStatus === "review_required" || c.gradingStatus === "graded");
+
+    return `
+      <div class="essay-card glass" data-idx="${idx}">
+        <div class="er-head">
+          <div class="er-name">🧑‍🎓 ${c.studentName}</div>
+          <span class="badge-pill ${meta.cls}">${meta.text}</span>
+        </div>
+        <div class="er-q">📝 ${c.examName} — ${c.questionText}</div>
+        <div class="er-score">${scoreText}</div>
+        <div class="er-actions">
+          <button onclick="viewEssayDetail(${idx})">👀 شوف التفاصيل</button>
+          <button class="primary" onclick="openEssayEditModal(${idx})">✏️ حط/عدّل الدرجة</button>
+          ${canRetry ? `<button onclick="retryEssay(${idx})">🔄 صححها تاني</button>` : ""}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.filterEssayCards = () => {
+  const q = (document.getElementById("searchEssay").value || "").trim();
+  const filter = document.getElementById("essayFilter").value;
+
+  const filtered = allEssayCards.filter(c => {
+    const matchesSearch = !q || c.studentName.includes(q) || c.questionText.includes(q);
+    if (!matchesSearch) return false;
+
+    if (filter === "all") return true;
+    if (filter === "failed") return c.gradingStatus === "failed";
+    if (filter === "pending") return c.gradingStatus === "pending" || c.gradingStatus === "processing";
+    if (filter === "review") return (c.gradingStatus === "review_required" || c.needsHumanReview) && !c.reviewedByTeacher;
+    if (filter === "graded") return c.gradingStatus === "graded" || c.reviewedByTeacher;
+    return true;
+  });
+
+  renderEssayCards(filtered);
+};
+
+window.viewEssayDetail = (idx) => {
+  const c = allEssayCards[idx];
+  if (!c) return;
+
+  const rubricHTML = c.criteria.length ? c.criteria.map(cr => {
+    const icon = cr.status === "full" ? "✅" : cr.status === "partial" ? "🟡" : "❌";
+    return `<div class="criteria-row"><span>${icon} ${cr.criterionTitle}</span><span>${cr.score} / ${cr.maxScore}</span></div>`;
+  }).join("") : `<div class="settings-note">${c.gradingMethod === "manual" ? "🖐 السؤال ده هتصححه انت بنفسك، مفيش تفصيل من الـAI." : "⏳ لسه مفيش تفاصيل"}</div>`;
+
+  document.getElementById("essayDetailBody").innerHTML = `
+    <div class="detail-block">
+      <h4>📝 السؤال</h4>
+      <p>${c.questionText}</p>
+    </div>
+    <div class="detail-block">
+      <h4>✍️ إجابة ${c.studentName}</h4>
+      <div class="answer-box">${(c.answer || "مفيش إجابة 🤷").replace(/</g,"&lt;")}</div>
+    </div>
+    <div class="detail-block">
+      <h4>📊 معايير التصحيح</h4>
+      ${rubricHTML}
+      ${c.criteria.length ? `<div class="criteria-total"><span>المجموع</span><span>${c.finalScore ?? c.aiScore ?? "—"} / ${c.maxScore ?? "?"}</span></div>` : ""}
+    </div>
+    ${c.aiSummary ? `<div class="detail-block"><h4>💡 رأي الـAI</h4><p>${c.aiSummary}</p></div>` : ""}
+    ${c.confidence != null ? `<div class="settings-note">مدى ثقة الـAI: ${Math.round(c.confidence*100)}% ${c.confidence < 0.75 ? "— يفضل تتأكد بنفسك 👀" : "— واثق جدًا 💪"}</div>` : ""}
+    ${c.gradingError ? `<div class="settings-note">⚠️ العطل اللي حصل: ${c.gradingError}</div>` : ""}
+  `;
+
+  document.getElementById("essayDetailModal").classList.add("show");
+};
+
+let editingEssayIdx = null;
+
+window.openEssayEditModal = (idx) => {
+  const c = allEssayCards[idx];
+  if (!c) return;
+  editingEssayIdx = idx;
+
+  document.getElementById("essayEditInfo").innerText =
+    `درجة الـAI: ${c.aiScore ?? "مفيش"} — من إجمالي ${c.maxScore ?? "?"} 📌`;
+  document.getElementById("essayEditScore").value = c.finalScore ?? c.aiScore ?? "";
+  document.getElementById("essayEditReason").value = "";
+
+  document.getElementById("essayEditModal").classList.add("show");
+};
+
+window.submitEssayEdit = async () => {
+  const c = allEssayCards[editingEssayIdx];
+  if (!c) return;
+
+  const scoreVal = Number(document.getElementById("essayEditScore").value);
+  const reason = document.getElementById("essayEditReason").value.trim();
+
+  if (Number.isNaN(scoreVal)) {
+    return showModal("⚠️ اكتب رقم الدرجة الأول يا كبير", "error");
+  }
+  if (c.maxScore != null && scoreVal > c.maxScore) {
+    return showModal(`⚠️ مينفعش الدرجة تتعدى ${c.maxScore}`, "error");
+  }
+  if (scoreVal < 0) {
+    return showModal("⚠️ الدرجة مينفعش تبقى بالسالب 😅", "error");
+  }
+
+  try {
+    showLoader();
+    await updateDoc(c.ref, {
+      teacherScore: scoreVal,
+      finalScore: scoreVal,
+      reviewedByTeacher: true,
+      teacherReviewReason: reason || "",
+      reviewedAt: Date.now(),
+      gradingStatus: "teacher_reviewed"
+    });
+    hideLoader();
+    document.getElementById("essayEditModal").classList.remove("show");
+    showModal("✅ تمام، الدرجة اتحفظت", "success");
+    loadEssayReviews();
+  } catch (e) {
+    hideLoader();
+    console.error(e);
+    showModal("😵 معرفناش نحفظ الدرجة، جرب تاني", "error");
+  }
+};
+
+window.retryEssay = async (idx) => {
+  const c = allEssayCards[idx];
+  if (!c) return;
+
+  try {
+    showLoader();
+    await retryEssayGradingFn({ studentId: c.studentId, examName: c.examName, questionId: c.questionId });
+    hideLoader();
+    showModal("🔄 تمام، بنصححها تاني دلوقتي", "success");
+    setTimeout(loadEssayReviews, 2000);
+  } catch (e) {
+    hideLoader();
+    console.error(e);
+    showModal("😵 معرفناش نعيد التصحيح، جرب تاني", "error");
+  }
+};
+
 let lastScroll = 0;
 
 window.addEventListener("scroll",()=>{
@@ -2190,4 +2434,4 @@ window.addEventListener("scroll",()=>{
 </script>
 
 </body>
-</html>
+  </html>

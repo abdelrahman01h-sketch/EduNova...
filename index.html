@@ -897,6 +897,7 @@ textarea.ans-area{ min-height:56px; }
           <option value="2">3</option>
           <option value="3">4</option>
         </select>
+        <input id="mcqPoints" type="number" min="0.5" step="0.5" value="1" placeholder="🔢 درجة السؤال ده">
       </div>
       <textarea id="analysis" placeholder="اكتب تحليل السؤال (اختياري)"></textarea>
     </div>
@@ -1734,6 +1735,7 @@ window.openQuestionModal = examId => {
   document.getElementById("a3").value = "";
   document.getElementById("a4").value = "";
   document.getElementById("correct").value = "0";
+  document.getElementById("mcqPoints").value = "1";
   document.getElementById("analysis").value = "";
   document.getElementById("qImage").value = "";
   resetImageUploadBox();
@@ -1762,6 +1764,7 @@ window.openEditQuestionModal = async (examId, questionId) => {
     document.getElementById("a3").value = q.answers?.[2] || "";
     document.getElementById("a4").value = q.answers?.[3] || "";
     document.getElementById("correct").value = String(q.correct ?? 0);
+    document.getElementById("mcqPoints").value = q.points ?? 1;
     document.getElementById("analysis").value = q.analysis || "";
     document.getElementById("qImage").value = "";
 
@@ -1828,13 +1831,15 @@ window.saveQuestion = async () => {
       return showModal("❌ أكمل كل بيانات السؤال", "error");
     }
 
+    const mcqPointsVal = Number(document.getElementById("mcqPoints").value || 1) || 1;
+
     payload = {
       type: "mcq",
       text,
       answers: [a1, a2, a3, a4],
       correct: Number(correct),
       analysis: analysis || "",
-      points: 1
+      points: mcqPointsVal
     };
   } else {
     const totalPoints = Number(document.getElementById("essayPoints").value || 0);
@@ -1953,7 +1958,7 @@ function loadQuestions(examId) {
           ${(q.rubric || []).map(c => `• ${c.title} (${c.points})`).join("<br>")}
         </div>
       ` : `
-        <div class="badge-pill type-mcq" style="margin-bottom:8px;">اختيار من متعدد</div>
+        <div class="badge-pill type-mcq" style="margin-bottom:8px;">اختيار من متعدد — ${q.points ?? 1} درجة</div>
         <div class="answers">
           ${(q.answers || []).map((a, i) =>
             `<div class="answer ${i === q.correct ? "correct" : ""}">${a}</div>`
@@ -2021,7 +2026,9 @@ const card=document.createElement("div");
 
 card.className="result-card";
 
-const percent=result.percent ?? 0;
+const isPending = result.hasEssay && (result.percent === null || result.percent === undefined);
+const percent = isPending ? 0 : (result.percent ?? 0);
+const percentLabel = isPending ? "⏳ قيد التصحيح" : `${percent}%`;
 
 card.innerHTML=`
 
@@ -2035,7 +2042,7 @@ card.innerHTML=`
 
 </div>
 
-<div class="percent">${percent}%</div>
+<div class="percent">${percentLabel}</div>
 
 </div>
 
@@ -2117,7 +2124,7 @@ resultsCache.push({
   studentName: student.name || "-",
   studentCode: student.code || "-",
   examName: result.examName || examDoc.id,
-  percent: percent,
+  percent: isPending ? "قيد التصحيح" : percent,
   correct: result.correct ?? 0,
   wrong: result.wrong ?? 0,
   blank: result.blank ?? 0,
@@ -2141,7 +2148,7 @@ window.exportResults = () => {
     r.studentName,
     r.studentCode,
     r.examName,
-    r.percent + "%",
+    typeof r.percent === "number" ? r.percent + "%" : r.percent,
     r.correct,
     r.wrong,
     r.blank,
@@ -2160,7 +2167,7 @@ if (searchInput) {
   searchInput.addEventListener("input", () => {
     const value = searchInput.value.toLowerCase();
 
-    document.querySelectorAll("#resultsTable tr").forEach(row => {
+    document.querySelectorAll("#resultsTable .result-card").forEach(row => {
       row.style.display =
         row.innerText.toLowerCase().includes(value) ? "" : "none";
     });
@@ -2362,6 +2369,59 @@ window.openEssayEditModal = (idx) => {
   document.getElementById("essayEditModal").classList.add("show");
 };
 
+/* ================= LIVE RECOMPUTE AFTER TEACHER REVIEW =================
+   المفروض السحابة (Cloud Function: onEssayReviewed) بتعمل الحساب ده لوحدها،
+   لكن عشان النتيجة تتحدث عند الطالب فورًا وبدون ما نعتمد على إن الفانكشن
+   منشورة/شغالة صح، بنعمل نفس الحساب هنا من المتصفح كمان مباشرة بعد
+   الاعتماد — بالتالي الكتابة في Firestore بتحصل فورًا وonSnapshot في
+   result.html بيمسكها من غير ريفريش. */
+async function recomputeAttemptTotalsClientSide(studentId, examName) {
+  const attemptRef = doc(db, "students", studentId, "exams", examName);
+  const attemptSnap = await getDoc(attemptRef);
+  if (!attemptSnap.exists()) return;
+  const attempt = attemptSnap.data();
+  if (!attempt.hasEssay) return;
+
+  const essaySnap = await getDocs(
+    collection(db, "students", studentId, "exams", examName, "essayResults")
+  );
+
+  let essayEarned = 0, essayTotal = 0, allGraded = true;
+  essaySnap.forEach(d => {
+    const r = d.data();
+    essayTotal += Number(r.maxScore || 0);
+    if (r.finalScore !== null && r.finalScore !== undefined) {
+      essayEarned += Number(r.finalScore);
+    } else {
+      allGraded = false;
+    }
+  });
+
+  // MCQ points: استخدم الدرجات المخزنة وقت التسليم (كل سؤال بدرجته
+  // الحقيقية). لو محاولة قديمة قبل إضافة الدرجات لكل سؤال، ارجع لنفس
+  // السلوك القديم (كل سؤال بدرجة واحدة) عشان محدش يتأثر بالتعديل.
+  const mcqEarned = attempt.mcqEarnedPoints ?? (attempt.correct || 0);
+  const mcqTotal = attempt.mcqTotalPoints ??
+    ((attempt.correct || 0) + (attempt.wrong || 0) + (attempt.blank || 0));
+
+  const totalExamPoints = mcqTotal + essayTotal;
+  const totalEarnedPoints = mcqEarned + essayEarned;
+  const percent = totalExamPoints > 0
+    ? Math.round((totalEarnedPoints / totalExamPoints) * 100)
+    : 0;
+
+  await updateDoc(attemptRef, {
+    essayEarnedPoints: essayEarned,
+    essayTotalPoints: essayTotal,
+    totalExamPoints,
+    totalEarnedPoints,
+    // متعرضش نسبة نهائية إلا لما كل الأسئلة المقالية تتصحح (سواء AI أو
+    // المدرس بنفسه) — نفس قاعدة result.html.
+    percent: allGraded ? percent : (attempt.percent ?? null),
+    examGradingStatus: allGraded ? "graded" : (attempt.examGradingStatus || "processing")
+  });
+}
+
 window.submitEssayEdit = async () => {
   const c = allEssayCards[editingEssayIdx];
   if (!c) return;
@@ -2389,6 +2449,11 @@ window.submitEssayEdit = async () => {
       reviewedAt: Date.now(),
       gradingStatus: "teacher_reviewed"
     });
+
+    // اعتماد فوري من المتصفح — النتيجة النهائية للطالب تتحدث لوحدها
+    // (result.html بيستمع للتغيير ده مباشرة، من غير ما الطالب يعمل ريفريش).
+    await recomputeAttemptTotalsClientSide(c.studentId, c.examName);
+
     hideLoader();
     document.getElementById("essayEditModal").classList.remove("show");
     showModal("✅ تمام، الدرجة اتحفظت", "success");
@@ -2434,4 +2499,4 @@ window.addEventListener("scroll",()=>{
 </script>
 
 </body>
-  </html>
+</html>

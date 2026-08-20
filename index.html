@@ -219,9 +219,12 @@ body::before{
 .dash-card.students .icon{ background:linear-gradient(135deg, rgba(245,158,11,0.5), rgba(236,72,153,0.4)); }
 .dash-card.exams .icon{ background:linear-gradient(135deg, rgba(139,92,246,0.5), rgba(236,72,153,0.4)); }
 .dash-card.results .icon{ background:linear-gradient(135deg, rgba(236,72,153,0.5), rgba(245,158,11,0.4)); }
+.dash-card.avg .icon{ background:linear-gradient(135deg, rgba(74,222,128,0.5), rgba(139,92,246,0.4)); }
+.dash-card.current .icon{ background:linear-gradient(135deg, rgba(74,222,128,0.55), rgba(245,158,11,0.4)); }
 
 .dash-card h3{ font-size:12.5px; color:var(--text-muted); font-weight:700; z-index:1; position:relative; }
 .dash-card p{ font-size:24px; font-weight:800; font-family:var(--mono); margin-top:4px; z-index:1; position:relative; }
+.dash-card p.small{ font-size:15px; line-height:1.4; font-family:'Cairo',sans-serif; white-space:normal; }
 
 .kpi-card{ border-radius:22px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.3); transition:.25s; }
 .kpi-card:hover{ transform:translateY(-6px); }
@@ -245,6 +248,21 @@ body::before{
   display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
   gap:18px; margin-top:18px;
 }
+
+/* ================= DASHBOARD CHARTS ================= */
+.charts-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:18px;
+  margin-top:18px;
+}
+.chart-card{
+  padding:20px; border-radius:22px;
+  box-shadow:0 12px 34px rgba(0,0,0,0.3);
+}
+.chart-card h3{ font-size:14.5px; font-weight:800; margin-bottom:14px; z-index:1; position:relative; }
+.chart-wrap{ position:relative; height:260px; width:100%; }
+.chart-empty-note{ text-align:center; padding:30px 10px; color:var(--text-muted); font-size:13px; }
 
 /* ================= INPUTS ================= */
 input, select, textarea{
@@ -485,11 +503,13 @@ textarea.ans-area{ min-height:56px; }
 @media (max-width:992px){
   .main{ padding:96px 20px 130px; }
   .results-grid, .exams-grid{ grid-template-columns:repeat(2,1fr); }
+  .charts-grid{ grid-template-columns:1fr; }
 }
 
 @media (max-width:768px){
-  .dashboard, .kpi-grid, .results-grid, .exams-grid{ grid-template-columns:1fr; }
-  .card, .exam-card, .result-card{ padding:18px; border-radius:20px; }
+  .dashboard, .kpi-grid, .results-grid, .exams-grid, .charts-grid{ grid-template-columns:1fr; }
+  .card, .exam-card, .result-card, .chart-card{ padding:18px; border-radius:20px; }
+  .chart-wrap{ height:220px; }
   .modal-content, .modal-box{ width:100%; max-height:90vh; overflow:auto; }
   .answers{ grid-template-columns:1fr; }
   table{ display:block; overflow-x:auto; white-space:nowrap; }
@@ -703,11 +723,42 @@ textarea.ans-area{ min-height:56px; }
     <div class="dash-card results">
       <div class="icon">🧪</div>
       <div>
-        <h3>الطلاب الذين امتحنوا</h3>
-        <p>تحت التطوير</p>
+        <h3>الطلاب اللي امتحنوا</h3>
+        <p id="examineesCount">0</p>
       </div>
     </div>
 
+    <div class="dash-card avg">
+      <div class="icon">📊</div>
+      <div>
+        <h3>متوسط النتائج</h3>
+        <p id="avgScore">—</p>
+      </div>
+    </div>
+
+    <div class="dash-card current">
+      <div class="icon">🟢</div>
+      <div>
+        <h3>الامتحان الحالي</h3>
+        <p id="currentExamName" class="small">—</p>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-title">📈 إحصائيات ورسوم بيانية</div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>🍩 توزيع مستويات الطلاب</h3>
+      <div class="chart-wrap"><canvas id="gradeDistChart" class="hidden"></canvas></div>
+      <div id="gradeDistEmpty" class="chart-empty-note">😌 لسه مفيش نتائج كفاية نعرض إحصائيات عنها</div>
+    </div>
+    <div class="chart-card">
+      <h3>📶 متوسط الدرجات لكل امتحان</h3>
+      <div class="chart-wrap"><canvas id="examAvgChart" class="hidden"></canvas></div>
+      <div id="examAvgEmpty" class="chart-empty-note">😌 لسه مفيش نتائج كفاية نعرض إحصائيات عنها</div>
+    </div>
   </div>
 </div>
 
@@ -954,6 +1005,7 @@ textarea.ans-area{ min-height:56px; }
 
 </div> <!-- /#adminApp -->
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import {
@@ -1215,6 +1267,7 @@ function initAdminData() {
   initStudentsListener();
   initExamsListener();
   loadAllResults();
+  loadCurrentExamCard();
 }
 
 onAuthStateChanged(auth, user => {
@@ -1245,6 +1298,7 @@ window.show = (id, btn) => {
   btn.classList.add("active");
 
   if (id === "essayReview") loadEssayReviews();
+  if (id === "home") { loadAllResults(); loadCurrentExamCard(); }
 };
 
 /* ================= STUDENTS ================= */
@@ -2121,10 +2175,12 @@ onclick="deleteResult('${studentId}','${examDoc.id}')">
 resultsTable.appendChild(card);
 
 resultsCache.push({
+  studentId,
   studentName: student.name || "-",
   studentCode: student.code || "-",
   examName: result.examName || examDoc.id,
   percent: isPending ? "قيد التصحيح" : percent,
+  isPending,
   correct: result.correct ?? 0,
   wrong: result.wrong ?? 0,
   blank: result.blank ?? 0,
@@ -2135,6 +2191,157 @@ resultsCache.push({
 
       
     });
+  }
+
+  renderDashboardStats();
+}
+
+/* ================= HOME DASHBOARD: STATS + CHARTS =================
+   كل الحسابات هنا بتتبني على resultsCache اللي loadAllResults() بيملاها،
+   عشان محتاجش نعمل queries إضافية لـFirestore. */
+let gradeDistChartInstance = null;
+let examAvgChartInstance = null;
+
+function renderDashboardStats() {
+  // ---- عدد الطلاب اللي امتحنوا فعلاً (بمحاولة واحدة على الأقل) ----
+  const examineesCount = new Set(resultsCache.map(r => r.studentId)).size;
+  const examineesEl = document.getElementById("examineesCount");
+  if (examineesEl) examineesEl.innerText = examineesCount;
+
+  // النتائج المصححة بالكامل بس (استبعاد اللي لسه قيد التصحيح) لحساب
+  // المتوسط وتوزيع المستويات — عشان محدش يتأثر بنتيجة مش نهائية.
+  const graded = resultsCache.filter(r => !r.isPending && typeof r.percent === "number");
+
+  const avgEl = document.getElementById("avgScore");
+  if (avgEl) {
+    avgEl.innerText = graded.length
+      ? Math.round(graded.reduce((s, r) => s + r.percent, 0) / graded.length) + "%"
+      : "—";
+  }
+
+  renderGradeDistChart(graded);
+  renderExamAvgChart(graded);
+}
+
+function renderGradeDistChart(graded) {
+  const canvas = document.getElementById("gradeDistChart");
+  const emptyNote = document.getElementById("gradeDistEmpty");
+  if (!canvas) return;
+
+  if (!graded.length || typeof Chart === "undefined") {
+    canvas.classList.add("hidden");
+    if (emptyNote) emptyNote.classList.remove("hidden");
+    return;
+  }
+  canvas.classList.remove("hidden");
+  if (emptyNote) emptyNote.classList.add("hidden");
+
+  const buckets = { "🏆 ممتاز (90-100)": 0, "🌟 جيد جدًا (75-89)": 0, "👍 جيد (60-74)": 0, "⚠️ ضعيف (أقل من 60)": 0 };
+  graded.forEach(r => {
+    if (r.percent >= 90) buckets["🏆 ممتاز (90-100)"]++;
+    else if (r.percent >= 75) buckets["🌟 جيد جدًا (75-89)"]++;
+    else if (r.percent >= 60) buckets["👍 جيد (60-74)"]++;
+    else buckets["⚠️ ضعيف (أقل من 60)"]++;
+  });
+
+  if (gradeDistChartInstance) gradeDistChartInstance.destroy();
+  gradeDistChartInstance = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(buckets),
+      datasets: [{
+        data: Object.values(buckets),
+        backgroundColor: ["#4ADE80", "#8B5CF6", "#F59E0B", "#F87171"],
+        borderColor: "rgba(15,10,25,0.9)",
+        borderWidth: 2,
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "62%",
+      plugins: {
+        legend: {
+          position: "bottom",
+          labels: { color: "#ffffff", font: { family: "Cairo", size: 11.5 }, padding: 14, boxWidth: 12 }
+        }
+      }
+    }
+  });
+}
+
+function renderExamAvgChart(graded) {
+  const canvas = document.getElementById("examAvgChart");
+  const emptyNote = document.getElementById("examAvgEmpty");
+  if (!canvas) return;
+
+  if (!graded.length || typeof Chart === "undefined") {
+    canvas.classList.add("hidden");
+    if (emptyNote) emptyNote.classList.remove("hidden");
+    return;
+  }
+  canvas.classList.remove("hidden");
+  if (emptyNote) emptyNote.classList.add("hidden");
+
+  const byExam = {};
+  graded.forEach(r => {
+    if (!byExam[r.examName]) byExam[r.examName] = { sum: 0, count: 0 };
+    byExam[r.examName].sum += r.percent;
+    byExam[r.examName].count++;
+  });
+
+  const labels = Object.keys(byExam);
+  const averages = labels.map(name => Math.round(byExam[name].sum / byExam[name].count));
+
+  if (examAvgChartInstance) examAvgChartInstance.destroy();
+  examAvgChartInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "متوسط الدرجة %",
+        data: averages,
+        backgroundColor: "rgba(139,92,246,0.55)",
+        hoverBackgroundColor: "rgba(236,72,153,0.75)",
+        borderRadius: 10,
+        maxBarThickness: 46
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true, max: 100,
+          ticks: { color: "#ffffff", font: { family: "Cairo", size: 11 }, callback: v => v + "%" },
+          grid: { color: "rgba(255,255,255,0.08)" }
+        },
+        x: {
+          ticks: { color: "#ffffff", font: { family: "Cairo", size: 11.5 } },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+/* ---- الامتحان الحالي: نفس الامتحان اللي exam.html فعليًا بيقدمه
+   للطالب (أول مستند من غير ترتيب) — عشان الرقم يعكس الواقع بالظبط. ---- */
+async function loadCurrentExamCard() {
+  const el = document.getElementById("currentExamName");
+  if (!el) return;
+  try {
+    const snap = await getDocs(collection(db, "exams"));
+    if (snap.empty) { el.innerText = "مفيش امتحان لسه"; return; }
+    const examDoc = snap.docs[0];
+    const exam = examDoc.data();
+    const qSnap = await getDocs(collection(db, "exams", examDoc.id, "questions"));
+    el.innerText = `${exam.name || "بدون اسم"} — ${qSnap.size} سؤال`;
+  } catch (e) {
+    console.error(e);
+    el.innerText = "—";
   }
 }
 

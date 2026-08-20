@@ -294,17 +294,6 @@ button.primary:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
 .copy-btn:hover{ transform:translateY(-2px); background:rgba(255,255,255,0.2); }
 .copy-btn:active{ transform:scale(0.95); }
 
-.danger-btn{
-  background:linear-gradient(135deg, var(--danger), #b91c1c);
-  border:1px solid rgba(255,255,255,0.35);
-  padding:12px 22px; border-radius:16px;
-  color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;
-  box-shadow:0 10px 26px rgba(248,113,113,0.32);
-  transition:.2s ease;
-}
-.danger-btn:hover{ transform:translateY(-3px); }
-.danger-btn:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
-
 /* ================= TABLE ================= */
 table{ width:100%; margin-top:6px; border-collapse:collapse; }
 th{
@@ -564,6 +553,70 @@ textarea.ans-area{ min-height:56px; }
 .pw-meter span{ display:block; height:100%; width:0%; transition:.25s ease; background:var(--danger); }
 .pw-hint{ font-size:11.5px; color:var(--text-muted); margin:-4px 0 14px; line-height:1.7; }
 .settings-note{ font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.7; }
+/* ================= ESSAY / TYPE UI ================= */
+.type-toggle{ display:flex; gap:10px; margin-bottom:14px; }
+.type-toggle label{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px; border-radius:14px; cursor:pointer;
+  background:rgba(255,255,255,0.06); border:1px solid var(--glass-border);
+  font-size:13px; font-weight:700; transition:.2s ease;
+}
+.type-toggle input{ display:none; margin:0; width:auto; }
+.type-toggle label.active{ background:var(--gradient); border-color:transparent; box-shadow:0 8px 22px rgba(236,72,153,0.3); }
+
+.rubric-row{
+  display:grid; grid-template-columns:1fr 1fr 90px 40px; gap:8px;
+  align-items:center; margin-bottom:8px;
+}
+.rubric-row input{ margin-bottom:0; }
+.rubric-row .rm-btn{
+  width:36px; height:36px; border-radius:10px; border:1px solid var(--glass-border);
+  background:rgba(248,113,113,0.18); color:var(--danger); cursor:pointer; font-weight:800;
+}
+.rubric-sum{ font-size:12.5px; color:var(--text-muted); margin:4px 0 14px; font-family:var(--mono); }
+.rubric-sum.ok{ color:var(--success); }
+.rubric-sum.bad{ color:var(--danger); }
+
+.badge-pill{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 12px; border-radius:999px; font-size:11.5px; font-weight:800;
+  z-index:1; position:relative;
+}
+.badge-pill.high{ background:rgba(74,222,128,0.18); color:var(--success); }
+.badge-pill.mid{ background:rgba(251,191,36,0.18); color:var(--warning); }
+.badge-pill.review{ background:rgba(248,113,113,0.18); color:var(--danger); }
+.badge-pill.pending{ background:rgba(139,92,246,0.2); color:#c4b5fd; }
+.badge-pill.failed{ background:rgba(248,113,113,0.22); color:var(--danger); }
+.badge-pill.type-mcq{ background:rgba(139,92,246,0.18); color:#c4b5fd; }
+.badge-pill.type-essay{ background:rgba(245,158,11,0.18); color:var(--a1); }
+
+.essay-card{ padding:18px; border-radius:20px; margin-bottom:14px; box-shadow:0 10px 28px rgba(0,0,0,0.28); }
+.essay-card .er-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.essay-card .er-name{ font-weight:800; font-size:14.5px; z-index:1; position:relative; }
+.essay-card .er-q{ font-size:12.5px; color:var(--text-muted); margin-bottom:10px; z-index:1; position:relative; }
+.essay-card .er-score{ font-family:var(--mono); font-weight:800; font-size:15px; z-index:1; position:relative; }
+.essay-card .er-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.essay-card .er-actions button{
+  flex:1; min-width:110px; padding:9px 10px; border-radius:10px; border:1px solid var(--glass-border);
+  cursor:pointer; font-weight:700; font-size:12.5px; background:rgba(255,255,255,0.08); color:var(--text);
+}
+.essay-card .er-actions button.primary{ background:var(--gradient); border:none; }
+
+.criteria-row{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:9px 12px; border-radius:10px; background:rgba(255,255,255,0.05);
+  margin-bottom:6px; font-size:12.5px;
+}
+.criteria-row .cstatus{ font-size:14px; }
+.criteria-total{
+  display:flex; justify-content:space-between; padding:10px 12px; margin-top:6px;
+  font-weight:800; border-top:1px solid var(--glass-border);
+}
+.detail-block{ margin-bottom:14px; }
+.detail-block h4{ font-size:12.5px; color:var(--text-muted); margin-bottom:6px; }
+.detail-block p, .detail-block div.answer-box{
+  font-size:13.5px; background:rgba(255,255,255,0.05); padding:10px 12px; border-radius:12px; line-height:1.7; white-space:pre-wrap;
+}
 </style>
 </head>
 <body>
@@ -618,6 +671,7 @@ textarea.ans-area{ min-height:56px; }
   <button onclick="show('students',this)">الطلاب</button>
   <button onclick="show('exams',this)">الامتحانات</button>
   <button onclick="show('results',this)">النتائج</button>
+  <button onclick="show('essayReview',this)">✍️ مراجعة المقالي</button>
   <button onclick="show('settings',this)">الإعدادات</button>
 </div>
 
@@ -667,7 +721,6 @@ textarea.ans-area{ min-height:56px; }
     <div class="toolbar-row">
       <button class="primary" onclick="addStudent()">➕ إضافة طالب</button>
       <button class="primary" onclick="exportStudents()">⬇️ تصدير الطلاب والأكواد</button>
-      <button class="danger-btn" onclick="deleteAllStudents()">🗑️ حذف جميع الطلاب</button>
     </div>
 
     <table>
@@ -702,6 +755,26 @@ textarea.ans-area{ min-height:56px; }
     </div>
 
       <div id="resultsTable" class="results-grid"></div>
+  </div>
+</div>
+
+<!-- ESSAY REVIEW -->
+<div id="essayReview" class="section">
+  <h2>✍️ مراجعة الإجابات المقالية</h2>
+
+  <div class="card">
+    <div class="toolbar-row">
+      <input id="searchEssay" placeholder="بحث باسم الطالب أو السؤال" oninput="filterEssayCards()">
+      <select id="essayFilter" onchange="filterEssayCards()" style="flex:1;min-width:180px;margin-bottom:0;">
+        <option value="all">كل الحالات</option>
+        <option value="review">🟡 يحتاج مراجعة</option>
+        <option value="pending">🔵 جاري التصحيح</option>
+        <option value="failed">🔴 تعذر التصحيح</option>
+        <option value="graded">🟢 تم التصحيح</option>
+      </select>
+      <button class="primary" onclick="loadEssayReviews()">🔄 تحديث</button>
+    </div>
+    <div id="essayReviewBox"></div>
   </div>
 </div>
 
@@ -754,9 +827,14 @@ textarea.ans-area{ min-height:56px; }
       <span class="step-dot" data-step="3"></span>
     </div>
 
-    <!-- STEP 1: نص السؤال + الصورة -->
+    <!-- STEP 1: نوع السؤال + نص السؤال + الصورة -->
     <div class="q-step" data-step="1">
-      <div class="step-label">الخطوة 1 من 3 — نص السؤال والصورة</div>
+      <div class="step-label">الخطوة 1 من 3 — نوع السؤال والنص والصورة</div>
+
+      <div class="type-toggle" id="typeToggle">
+        <label id="typeLabelMcq"><input type="radio" name="questionType" id="typeMcq" value="mcq" checked onchange="onQTypeChange()"> اختيار من متعدد</label>
+        <label id="typeLabelEssay"><input type="radio" name="questionType" id="typeEssay" value="essay" onchange="onQTypeChange()"> ✍️ سؤال مقالي</label>
+      </div>
 
       <textarea id="qText" class="qtext-area" placeholder="اكتب نص السؤال هنا"></textarea>
 
@@ -772,26 +850,47 @@ textarea.ans-area{ min-height:56px; }
       <input type="file" id="qImage" accept="image/*" class="hidden" onchange="onQImageChange(event)">
     </div>
 
-    <!-- STEP 2: الإجابات -->
+    <!-- STEP 2: الإجابات / إعداد التصحيح المقالي -->
     <div class="q-step" data-step="2">
-      <div class="step-label">الخطوة 2 من 3 — الإجابات</div>
+      <div class="step-label">الخطوة 2 من 3 — الإجابات / معايير التصحيح</div>
 
-      <textarea id="a1" class="ans-area" placeholder="الإجابة 1"></textarea>
-      <textarea id="a2" class="ans-area" placeholder="الإجابة 2"></textarea>
-      <textarea id="a3" class="ans-area" placeholder="الإجابة 3"></textarea>
-      <textarea id="a4" class="ans-area" placeholder="الإجابة 4"></textarea>
+      <div id="mcqAnswersWrap">
+        <textarea id="a1" class="ans-area" placeholder="الإجابة 1"></textarea>
+        <textarea id="a2" class="ans-area" placeholder="الإجابة 2"></textarea>
+        <textarea id="a3" class="ans-area" placeholder="الإجابة 3"></textarea>
+        <textarea id="a4" class="ans-area" placeholder="الإجابة 4"></textarea>
+      </div>
+
+      <div id="essayFieldsWrap" class="hidden">
+        <input id="essayPoints" type="number" min="0" step="0.5" placeholder="الدرجة الكلية للسؤال" oninput="renderRubricSum()">
+
+        <div class="settings-note" style="margin-bottom:10px;">Rubric / معايير التصحيح — مجموع درجات المعايير يجب أن يساوي الدرجة الكلية</div>
+        <div id="rubricRows"></div>
+        <button type="button" class="copy-btn" style="margin-bottom:10px;" onclick="addRubricRow()">➕ إضافة معيار</button>
+        <div id="rubricSum" class="rubric-sum"></div>
+
+        <textarea id="acceptedIdeas" placeholder="أفكار أو معلومات مقبولة (سطر لكل فكرة) — اختياري"></textarea>
+
+        <select id="gradingMode">
+          <option value="strict">صارم</option>
+          <option value="balanced" selected>متوازن</option>
+          <option value="lenient">متسامح</option>
+        </select>
+      </div>
     </div>
 
     <!-- STEP 3: الإجابة الصحيحة + التحليل -->
     <div class="q-step" data-step="3">
-      <div class="step-label">الخطوة 3 من 3 — الإجابة الصحيحة والتحليل</div>
+      <div class="step-label" id="step3Label">الخطوة 3 من 3 — الإجابة الصحيحة والتحليل</div>
 
-      <select id="correct">
-        <option value="0">1</option>
-        <option value="1">2</option>
-        <option value="2">3</option>
-        <option value="3">4</option>
-      </select>
+      <div id="mcqStep3Wrap">
+        <select id="correct">
+          <option value="0">1</option>
+          <option value="1">2</option>
+          <option value="2">3</option>
+          <option value="3">4</option>
+        </select>
+      </div>
       <textarea id="analysis" placeholder="اكتب تحليل السؤال (اختياري)"></textarea>
     </div>
 
@@ -803,6 +902,31 @@ textarea.ans-area{ min-height:56px; }
     </div>
   </div>
 </div>
+<!-- ESSAY DETAIL MODAL -->
+<div class="modal" id="essayDetailModal">
+  <div class="modal-content" style="max-width:520px;">
+    <h3>عرض التصحيح</h3>
+    <div id="essayDetailBody"></div>
+    <div class="modal-actions">
+      <button class="close" onclick="document.getElementById('essayDetailModal').classList.remove('show')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ESSAY EDIT GRADE MODAL -->
+<div class="modal" id="essayEditModal">
+  <div class="modal-content" style="max-width:420px;">
+    <h3>✏️ تعديل الدرجة</h3>
+    <div id="essayEditInfo" class="settings-note" style="margin-bottom:10px;"></div>
+    <input id="essayEditScore" type="number" step="0.5" placeholder="الدرجة النهائية">
+    <textarea id="essayEditReason" placeholder="سبب التعديل (اختياري)"></textarea>
+    <div class="modal-actions">
+      <button class="save" onclick="submitEssayEdit()">اعتماد الدرجة</button>
+      <button class="close" onclick="document.getElementById('essayEditModal').classList.remove('show')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= GLOBAL MODAL ================= -->
 <div id="globalModal" class="modal">
   <div class="modal-box">
@@ -838,8 +962,7 @@ import {
   query,
   where,
   orderBy,
-  serverTimestamp,
-  writeBatch
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 import {
   getAuth,
@@ -851,6 +974,10 @@ import {
   updatePassword,
   updateEmail
 } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-auth.js";
+import {
+  getFunctions,
+  httpsCallable
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-functions.js";
 
 /* ================= FIREBASE ================= */
 const firebaseConfig = {
@@ -862,6 +989,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const functions = getFunctions(app);
+const retryEssayGradingFn = httpsCallable(functions, "retryEssayGrading");
 
 /* ================= ADMIN AUTH ================= */
 /* Firebase Auth requires an email-shaped identifier, so the admin's
@@ -1106,6 +1235,8 @@ window.show = (id, btn) => {
 
   document.querySelectorAll(".sidebar button").forEach(b => b.classList.remove("active"));
   btn.classList.add("active");
+
+  if (id === "essayReview") loadEssayReviews();
 };
 
 /* ================= STUDENTS ================= */
@@ -1208,51 +1339,6 @@ window.deleteStudent = id => {
       hideLoader();
     }
   }, true);
-};
-
-window.deleteAllStudents = () => {
-  showModal(
-    "⚠️ هيتم حذف جميع الطلاب وأكوادهم ونتائجهم نهائيًا من قاعدة البيانات، ومينفعش تتراجع بعد كده. متأكد؟",
-    "warn",
-    async () => {
-      try {
-        showLoader();
-
-        const studentsSnap = await getDocs(collection(db, "students"));
-
-        for (const studentDoc of studentsSnap.docs) {
-          /* ================= حذف نتائج الطالب أولًا ================= */
-          const examsSnap = await getDocs(collection(db, "students", studentDoc.id, "exams"));
-
-          let batch = writeBatch(db);
-          let opCount = 0;
-
-          for (const examDoc of examsSnap.docs) {
-            batch.delete(examDoc.ref);
-            opCount++;
-
-            if (opCount >= 450) {
-              await batch.commit();
-              batch = writeBatch(db);
-              opCount = 0;
-            }
-          }
-
-          /* ================= حذف الطالب نفسه ================= */
-          batch.delete(studentDoc.ref);
-          await batch.commit();
-        }
-
-        showModal("✅ تم حذف جميع الطلاب بنجاح", "success");
-      } catch (err) {
-        console.error(err);
-        showModal("❌ حدث خطأ أثناء حذف الطلاب", "error");
-      } finally {
-        hideLoader();
-      }
-    },
-    true
-  );
 };
 
 /* ================= COPY TO CLIPBOARD ================= */
@@ -1451,6 +1537,78 @@ let editingQuestionId = null;
 let existingQuestionImage = "";
 let currentQStep = 1;
 const totalQSteps = 3;
+let rubricCounter = 0;
+
+function currentQType() {
+  return document.getElementById("typeEssay").checked ? "essay" : "mcq";
+}
+
+window.onQTypeChange = () => {
+  const type = currentQType();
+  const isEssay = type === "essay";
+
+  document.getElementById("mcqAnswersWrap").classList.toggle("hidden", isEssay);
+  document.getElementById("essayFieldsWrap").classList.toggle("hidden", !isEssay);
+  document.getElementById("mcqStep3Wrap").classList.toggle("hidden", isEssay);
+  document.getElementById("step3Label").innerText = isEssay
+    ? "الخطوة 3 من 3 — ملاحظات (اختياري)"
+    : "الخطوة 3 من 3 — الإجابة الصحيحة والتحليل";
+
+  document.getElementById("typeLabelMcq").classList.toggle("active", !isEssay);
+  document.getElementById("typeLabelEssay").classList.toggle("active", isEssay);
+
+  if (isEssay && !document.getElementById("rubricRows").children.length) {
+    addRubricRow();
+  }
+  renderRubricSum();
+};
+
+/* ================= RUBRIC BUILDER ================= */
+window.addRubricRow = (criterion) => {
+  rubricCounter++;
+  const id = "rc_" + rubricCounter;
+  const row = document.createElement("div");
+  row.className = "rubric-row";
+  row.dataset.rowId = id;
+  row.innerHTML = `
+    <input type="text" class="rc-title" placeholder="عنوان المعيار" value="${criterion?.title ? escapeAttr(criterion.title) : ""}">
+    <input type="text" class="rc-desc" placeholder="الوصف" value="${criterion?.description ? escapeAttr(criterion.description) : ""}">
+    <input type="number" class="rc-points" step="0.5" min="0" placeholder="الدرجة" value="${criterion?.points ?? ""}" oninput="renderRubricSum()">
+    <button type="button" class="rm-btn" onclick="removeRubricRow('${id}')">✕</button>
+  `;
+  document.getElementById("rubricRows").appendChild(row);
+  renderRubricSum();
+};
+
+window.removeRubricRow = (id) => {
+  const row = document.querySelector(`.rubric-row[data-row-id="${id}"]`);
+  if (row) row.remove();
+  renderRubricSum();
+};
+
+function escapeAttr(str) {
+  return String(str).replace(/"/g, "&quot;");
+}
+
+function getRubricFromForm() {
+  return Array.from(document.querySelectorAll(".rubric-row")).map((row, i) => ({
+    id: "criterion_" + (i + 1),
+    title: row.querySelector(".rc-title").value.trim(),
+    description: row.querySelector(".rc-desc").value.trim(),
+    points: Number(row.querySelector(".rc-points").value || 0)
+  }));
+}
+
+window.renderRubricSum = () => {
+  const rubric = getRubricFromForm();
+  const sum = rubric.reduce((s, c) => s + (Number(c.points) || 0), 0);
+  const total = Number(document.getElementById("essayPoints")?.value || 0);
+  const el = document.getElementById("rubricSum");
+  if (!el) return;
+  el.innerText = `مجموع المعايير: ${sum} / الدرجة الكلية: ${total}`;
+  el.classList.toggle("ok", total > 0 && sum === total);
+  el.classList.toggle("bad", !(total > 0 && sum === total));
+};
 
 window.qNext = () => qStepGo(currentQStep + 1);
 window.qPrev = () => qStepGo(currentQStep - 1);
@@ -1459,16 +1617,30 @@ function qStepGo(step) {
   if (step < 1) step = 1;
   if (step > totalQSteps) step = totalQSteps;
 
+  const isEssay = currentQType() === "essay";
+
   /* ================= تحقق بسيط قبل الانتقال للأمام ================= */
   if (step > currentQStep) {
     if (currentQStep === 1 && !document.getElementById("qText").value.trim()) {
       return showModal("❌ اكتب نص السؤال الأول", "error");
     }
-    if (currentQStep === 2) {
+    if (currentQStep === 2 && !isEssay) {
       const answersFilled = ["a1", "a2", "a3", "a4"]
         .every(id => document.getElementById(id).value.trim());
       if (!answersFilled) {
         return showModal("❌ أكمل كل الإجابات الأربعة", "error");
+      }
+    }
+    if (currentQStep === 2 && isEssay) {
+      const totalPoints = Number(document.getElementById("essayPoints").value || 0);
+      const rubric = getRubricFromForm();
+      if (!totalPoints) return showModal("❌ حدد الدرجة الكلية للسؤال", "error");
+      if (!rubric.length || rubric.some(c => !c.title || !c.points)) {
+        return showModal("❌ أكمل بيانات كل معايير التصحيح (العنوان والدرجة)", "error");
+      }
+      const sum = rubric.reduce((s, c) => s + c.points, 0);
+      if (sum !== totalPoints) {
+        return showModal(`⚠️ مجموع درجات معايير التصحيح يجب أن يساوي ${totalPoints}`, "error");
       }
     }
   }
@@ -1521,6 +1693,15 @@ window.onQImageChange = event => {
   reader.readAsDataURL(file);
 };
 
+function resetQuestionTypeFields() {
+  document.getElementById("typeMcq").checked = true;
+  document.getElementById("essayPoints").value = "";
+  document.getElementById("rubricRows").innerHTML = "";
+  document.getElementById("acceptedIdeas").value = "";
+  document.getElementById("gradingMode").value = "balanced";
+  onQTypeChange();
+}
+
 window.openQuestionModal = examId => {
   currentExamId = examId;
   editingQuestionId = null;
@@ -1537,6 +1718,7 @@ window.openQuestionModal = examId => {
   document.getElementById("analysis").value = "";
   document.getElementById("qImage").value = "";
   resetImageUploadBox();
+  resetQuestionTypeFields();
 
   document.getElementById("qModal").classList.add("show");
   qStepGo(1);
@@ -1549,6 +1731,7 @@ window.openEditQuestionModal = async (examId, questionId) => {
     if (!snap.exists()) return showModal("السؤال غير موجود", "error");
 
     const q = snap.data();
+    const qType = q.type === "essay" ? "essay" : "mcq";
     currentExamId = examId;
     editingQuestionId = questionId;
     existingQuestionImage = q.image || "";
@@ -1562,6 +1745,21 @@ window.openEditQuestionModal = async (examId, questionId) => {
     document.getElementById("correct").value = String(q.correct ?? 0);
     document.getElementById("analysis").value = q.analysis || "";
     document.getElementById("qImage").value = "";
+
+    document.getElementById("typeMcq").checked = qType === "mcq";
+    document.getElementById("typeEssay").checked = qType === "essay";
+    document.getElementById("rubricRows").innerHTML = "";
+    if (qType === "essay") {
+      document.getElementById("essayPoints").value = q.points ?? "";
+      (q.rubric || []).forEach(c => addRubricRow(c));
+      document.getElementById("acceptedIdeas").value = (q.acceptedIdeas || []).join("\n");
+      document.getElementById("gradingMode").value = q.gradingMode || "balanced";
+    } else {
+      document.getElementById("essayPoints").value = "";
+      document.getElementById("acceptedIdeas").value = "";
+      document.getElementById("gradingMode").value = "balanced";
+    }
+    onQTypeChange();
 
     const note = document.getElementById("currentImageNote");
     note.classList.toggle("hidden", !existingQuestionImage);
@@ -1587,17 +1785,61 @@ window.closeQ = () => {
 
 window.saveQuestion = async () => {
 
+  const type = currentQType();
   const text = document.getElementById("qText").value.trim();
-  const a1 = document.getElementById("a1").value.trim();
-  const a2 = document.getElementById("a2").value.trim();
-  const a3 = document.getElementById("a3").value.trim();
-  const a4 = document.getElementById("a4").value.trim();
-  const correct = document.getElementById("correct").value;
   const analysis = document.getElementById("analysis").value.trim();
   const imageFile = document.getElementById("qImage").files[0];
 
-  if (!text || !a1 || !a2 || !a3 || !a4) {
-    return showModal("❌ أكمل كل بيانات السؤال", "error");
+  if (!text) {
+    return showModal("❌ اكتب نص السؤال", "error");
+  }
+
+  let payload;
+
+  if (type === "mcq") {
+    const a1 = document.getElementById("a1").value.trim();
+    const a2 = document.getElementById("a2").value.trim();
+    const a3 = document.getElementById("a3").value.trim();
+    const a4 = document.getElementById("a4").value.trim();
+    const correct = document.getElementById("correct").value;
+
+    if (!a1 || !a2 || !a3 || !a4) {
+      return showModal("❌ أكمل كل بيانات السؤال", "error");
+    }
+
+    payload = {
+      type: "mcq",
+      text,
+      answers: [a1, a2, a3, a4],
+      correct: Number(correct),
+      analysis: analysis || "",
+      points: 1
+    };
+  } else {
+    const totalPoints = Number(document.getElementById("essayPoints").value || 0);
+    const rubric = getRubricFromForm();
+    const sum = rubric.reduce((s, c) => s + c.points, 0);
+
+    if (!totalPoints) return showModal("❌ حدد الدرجة الكلية للسؤال", "error");
+    if (!rubric.length || rubric.some(c => !c.title || !c.points)) {
+      return showModal("❌ أكمل بيانات كل معايير التصحيح (العنوان والدرجة)", "error");
+    }
+    if (sum !== totalPoints) {
+      return showModal(`⚠️ مجموع درجات معايير التصحيح يجب أن يساوي ${totalPoints}`, "error");
+    }
+
+    const acceptedIdeas = document.getElementById("acceptedIdeas").value
+      .split("\n").map(s => s.trim()).filter(Boolean);
+
+    payload = {
+      type: "essay",
+      text,
+      points: totalPoints,
+      rubric,
+      acceptedIdeas,
+      gradingMode: document.getElementById("gradingMode").value || "balanced",
+      analysis: analysis || ""
+    };
   }
 
   let imageUrl = existingQuestionImage;
@@ -1627,13 +1869,7 @@ window.saveQuestion = async () => {
       imageUrl = data.secure_url;
     }
 
-    const payload = {
-      text,
-      image: imageUrl,
-      answers: [a1, a2, a3, a4],
-      correct: Number(correct),
-      analysis: analysis || ""
-    };
+    payload.image = imageUrl || "";
 
     if (editingQuestionId) {
       /* ================= تحديث السؤال ================= */
@@ -1684,6 +1920,21 @@ function loadQuestions(examId) {
     snap.forEach(docSnap => {
       const q = docSnap.data();
       const qId = docSnap.id;
+      const qType = q.type === "essay" ? "essay" : "mcq";
+
+      const bodyHTML = qType === "essay" ? `
+        <div class="badge-pill type-essay">✍️ مقالي — ${q.points ?? 0} درجة</div>
+        <div style="margin-top:10px;font-size:12.5px;color:var(--text-muted);">
+          ${(q.rubric || []).map(c => `• ${c.title} (${c.points})`).join("<br>")}
+        </div>
+      ` : `
+        <div class="badge-pill type-mcq" style="margin-bottom:8px;">اختيار من متعدد</div>
+        <div class="answers">
+          ${(q.answers || []).map((a, i) =>
+            `<div class="answer ${i === q.correct ? "correct" : ""}">${a}</div>`
+          ).join("")}
+        </div>
+      `;
 
      box.innerHTML += `
   <div class="question">
@@ -1696,11 +1947,7 @@ function loadQuestions(examId) {
       <img src="${q.image}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:8px;">
     ` : ""}
 
-    <div class="answers">
-      ${q.answers.map((a, i) =>
-        `<div class="answer ${i === q.correct ? "correct" : ""}">${a}</div>`
-      ).join("")}
-    </div>
+    ${bodyHTML}
 
     <div style="display:flex;gap:8px;margin-top:10px;">
       <button onclick="openEditQuestionModal('${examId}','${qId}')"
